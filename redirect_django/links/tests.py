@@ -3,18 +3,21 @@ import pytz
 import time
 
 from django.test import TestCase
+from django.db import transaction
 
 # Create your tests here.
 
 from .models import Link
 from redirect.settings import TIME_ZONE
 
+
+
 class TestGetLink(TestCase):
 
     test_link = None
     inactive_link = None
 
-
+    @transaction.atomic
     def setUp(self) -> None:
         self.test_link = Link.objects.create(original_link="https://docs.djangoproject.com")
         self.inactive_link = Link.objects.create(
@@ -22,11 +25,12 @@ class TestGetLink(TestCase):
             lifetime=datetime.now(pytz.timezone(TIME_ZONE)),
         )
 
+    @transaction.atomic
     def test_get_original_link(self):
         response = self.client.get(f'/{self.test_link.short_link}')
         assert str(response) == '<HttpResponseRedirect status_code=302, "text/html; charset=utf-8", url="https://docs.djangoproject.com">'
 
-
+    @transaction.atomic
     def test_inactive_link(self):
         time.sleep(5)
         response = self.client.get(f'/{self.inactive_link.short_link}')
